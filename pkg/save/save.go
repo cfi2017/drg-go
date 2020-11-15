@@ -2,17 +2,12 @@ package save
 
 import (
 	"encoding/binary"
-	"errors"
 	"os"
 )
 
 const (
-	metaOffset = 893
+	metaOffset = 1037
 	eofOffset  = 13
-)
-
-var (
-	ErrPropertyNotFound = errors.New("property not found")
 )
 
 type SaveFile struct {
@@ -89,5 +84,5 @@ func (s *SaveFile) GetProperties() (map[string]interface{}, error) {
 
 	}
 
-	return properties, ErrPropertyNotFound
+	return properties, nil
 }
