@@ -3,7 +3,6 @@ package save
 import (
 	"encoding/binary"
 	"io"
-	"unicode/utf16"
 )
 
 func readString(r io.Reader) (string, error) {
@@ -13,13 +12,13 @@ func readString(r io.Reader) (string, error) {
 		return "", err
 	}
 
-	values := make([]uint16, length)
+	values := make([]byte, length)
 	err = binary.Read(r, binary.LittleEndian, &values)
 	if err != nil {
 		return "", err
 	}
 
-	return string(utf16.Decode(values)), nil
+	return string(values), nil
 }
 
 func readPaddedString(r io.Reader) (string, error) {
