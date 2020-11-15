@@ -19,7 +19,7 @@ type SaveFile struct {
 	Path string
 }
 
-func (s *SaveFile) GetValue(key string) (interface{}, error) {
+func (s *SaveFile) GetValues() (map[string]interface{}, error) {
 	file, err := os.Open(s.Path)
 	if err != nil {
 		return nil, err
@@ -37,6 +37,8 @@ func (s *SaveFile) GetValue(key string) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	values := make(map[string]interface{})
 
 	for getPos(file) < length-eofOffset {
 		propertyName, err := readString(file)
@@ -77,13 +79,15 @@ func (s *SaveFile) GetValue(key string) (interface{}, error) {
 			if err != nil {
 				return nil, err
 			}
+			continue
 		}
 
-		if propertyName == key {
-			return value, nil
-		}
+		values[propertyName] = value
+		// if propertyName == key {
+		// 	return value, nil
+		// }
 
 	}
 
-	return nil, ErrPropertyNotFound
+	return values, ErrPropertyNotFound
 }
