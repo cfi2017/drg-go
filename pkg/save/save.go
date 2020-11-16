@@ -1,7 +1,6 @@
 package save
 
 import (
-	"encoding/binary"
 	"os"
 )
 
@@ -10,79 +9,80 @@ const (
 	eofOffset  = 13
 )
 
-type SaveFile struct {
-	Path string
+type Property struct {
+	Value     interface{}
+	length    int64
+	offset    int64
+	valueType string
+	name      string
 }
 
-func (s *SaveFile) GetProperties() (map[string]interface{}, error) {
+type SaveFile struct {
+	Path       string
+	properties map[string]Property
+	header     [metaOffset]byte
+	footer     [eofOffset]byte
+}
+
+func (s *SaveFile) ReadProperties() error {
 	file, err := os.Open(s.Path)
 	if err != nil {
-		return nil, err
+		return err
 	}
+	defer file.Close()
 	info, err := file.Stat()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	length := info.Size()
-	_, err = setPos(file, metaOffset)
+	s.header, err = readHeader(file)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	_, err = readString(file)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	properties := make(map[string]interface{})
-
-	for getPos(file) < length-eofOffset {
-		propertyName, err := readString(file)
+	s.properties = make(map[string]Property)
+	for pos := getPos(file); pos < length-eofOffset; {
+		property, err := readProperty(file)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		propertyType, err := readString(file)
-		if err != nil {
-			return nil, err
-		}
-		var propertyLength int64
-		err = binary.Read(file, binary.LittleEndian, &propertyLength)
-		if err != nil {
-			return nil, err
-		}
-
-		var value interface{}
-
-		switch propertyType {
-		case "StrProperty":
-			{
-				value, err = readPaddedString(file)
-			}
-		case "IntProperty":
-			{
-				value, err = readPaddedInt32(file)
-			}
-		case "FloatProperty":
-			{
-				value, err = readPaddedFloat(file)
-			}
-		case "BoolProperty":
-			{
-				value, err = readBool(file)
-			}
-		default:
-			_, err = setPos(file, propertyLength+1)
-			if err != nil {
-				return nil, err
-			}
+		if property.name == "" {
 			continue
 		}
-
-		properties[propertyName] = value
-		// if propertyName == key {
-		// 	return value, nil
-		// }
-
+		property.offset = pos
+		s.properties[property.name] = property
 	}
 
-	return properties, nil
+	s.footer, err = readFooter(file)
+	return err
+}
+
+func (s *SaveFile) SaveProperties() error {
+	file, err := os.Create(s.Path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	err = writeHeader(file, s.header)
+	if err != nil {
+		return err
+	}
+
+	for _, property := range s.properties {
+		err = writeProperty(file, property)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = writeFooter(file, s.footer)
+	if err != nil {
+		return err
+	}
+
+	panic("implement me")
 }
