@@ -29,7 +29,6 @@ func (s *SaveFile) ReadProperties() error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
 	info, err := file.Stat()
 	if err != nil {
 		return err
@@ -58,7 +57,10 @@ func (s *SaveFile) ReadProperties() error {
 	}
 
 	s.footer, err = readFooter(file)
-	return err
+	if err != nil {
+		return err
+	}
+	return file.Close()
 }
 
 func (s *SaveFile) SaveProperties() error {
@@ -66,7 +68,6 @@ func (s *SaveFile) SaveProperties() error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
 	err = writeHeader(file, s.header)
 	if err != nil {
 		return err
@@ -83,6 +84,5 @@ func (s *SaveFile) SaveProperties() error {
 	if err != nil {
 		return err
 	}
-
-	panic("implement me")
+	return file.Close()
 }
